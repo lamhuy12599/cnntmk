@@ -85,19 +85,39 @@
   .section.active{display:block}
   .empty{color:var(--muted);text-align:center;padding:26px;font-size:.9rem}
   /* POS */
-  .menu-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px}
+  .menu-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px}
   .menu-item{
-    background:var(--glass); border:1px solid var(--glass-border); border-radius:18px; padding:16px; cursor:pointer;
+    background:var(--glass); border:1px solid var(--glass-border); border-radius:18px; padding:14px; cursor:pointer;
     backdrop-filter:blur(20px) saturate(180%); box-shadow:0 4px 16px rgba(31,38,52,.08), inset 0 1px 0 rgba(255,255,255,.6);
-    transition:.15s;
+    transition:.15s; position:relative; overflow:hidden;
   }
   .menu-item:hover{transform:translateY(-2px);box-shadow:0 8px 22px rgba(10,132,255,.18);border-color:rgba(10,132,255,.4)}
-  .menu-item .name{font-weight:600;font-size:.95rem}
-  .menu-item .price{color:var(--accent);font-family:var(--font-mono);margin-top:6px;font-weight:600}
-  .cart-line{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid rgba(0,0,0,.06);font-size:.9rem}
+  .menu-item:active{transform:scale(.97)}
+  .menu-item .icon{
+    width:44px; height:44px; border-radius:12px; display:flex; align-items:center; justify-content:center;
+    font-weight:700; font-size:1.1rem; color:#fff; margin-bottom:10px;
+  }
+  .menu-item .cat-tag{font-size:.68rem; color:var(--muted); text-transform:uppercase; letter-spacing:.4px; margin-bottom:2px}
+  .menu-item .name{font-weight:600; font-size:.92rem; line-height:1.25; min-height:2.3em}
+  .menu-item .price{color:var(--accent);font-family:var(--font-mono);margin-top:8px;font-weight:700; font-size:.95rem}
+  .menu-item .qty-badge{
+    position:absolute; top:10px; right:10px; background:var(--accent); color:#fff; font-weight:700;
+    font-size:.78rem; width:22px; height:22px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+    box-shadow:0 2px 6px rgba(10,132,255,.4);
+  }
+  .cart-header{display:flex; justify-content:space-between; align-items:baseline; margin-bottom:8px}
+  .cart-header h3{margin:0}
+  .cart-header .cart-meta{font-size:.78rem; color:var(--muted)}
+  .cart-lines-wrap{max-height:260px; overflow-y:auto; margin-bottom:4px}
+  .cart-line{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(0,0,0,.06);font-size:.9rem}
+  .cart-line .item-name{flex:1; min-width:0}
+  .cart-line .item-name .n{font-weight:600; display:block}
+  .cart-line .item-name .p{font-size:.78rem; color:var(--muted); font-family:var(--font-mono)}
   .cart-line .qty-btns{display:flex;gap:6px;align-items:center}
-  .qty-btns button{padding:3px 11px;background:rgba(255,255,255,.7);color:var(--text);box-shadow:none;border:1px solid rgba(0,0,0,.08)}
-  .total-line{display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:1.3rem;font-weight:700;margin-top:14px;padding-top:14px;border-top:1px solid rgba(0,0,0,.1)}
+  .qty-btns button{padding:3px 11px;background:rgba(255,255,255,.7);color:var(--text);box-shadow:none;border:1px solid rgba(0,0,0,.08); border-radius:8px}
+  .subtotal-row{display:flex; justify-content:space-between; font-size:.88rem; color:var(--muted); padding:4px 0}
+  .subtotal-row input{width:110px; text-align:right; padding:5px 8px}
+  .total-line{display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:1.5rem;font-weight:700;margin-top:10px;padding-top:12px;border-top:1px dashed rgba(0,0,0,.15)}
   /* Nút chuyển hình thức thanh toán, nút chọn danh mục món, nút tiền nhanh */
   .httt-btn{flex:1}
   .httt-btn.active{background:linear-gradient(180deg, var(--accent), #0071e3); color:#fff; box-shadow:0 2px 10px rgba(10,132,255,.35)}
@@ -108,6 +128,7 @@
   .quick-cash-btn{padding:8px 12px; font-size:.85rem; background:rgba(255,255,255,.6); color:var(--text); border:1px solid rgba(255,255,255,.8); box-shadow:none}
   #pos-quickcash, #pos-categories{flex-wrap:wrap}
   .menhgia-input{width:110px; text-align:right}
+  .pos-pay-btn{width:100%; padding:16px; font-size:1.05rem; font-weight:700; border-radius:16px}
 
   /* ============= Tối ưu cho điện thoại (đặc biệt khi xoay dọc) ============= */
   @media (max-width: 860px){
@@ -220,11 +241,17 @@
             <div class="menu-grid" id="menu-grid"></div>
           </div>
           <div class="card" style="height:fit-content;position:sticky;top:20px">
-            <h3 style="margin-top:0">Hoá đơn</h3>
-            <div id="cart-lines"><div class="empty">Chưa chọn món nào</div></div>
-            <div class="total-line"><span>Tổng cộng</span><span id="cart-total">0đ</span></div>
+            <div class="cart-header">
+              <h3>🧾 Hoá đơn</h3>
+              <span class="cart-meta" id="cart-time"></span>
+            </div>
+            <div class="cart-lines-wrap" id="cart-lines"><div class="empty">Chưa chọn món nào</div></div>
 
-            <label>Hình thức thanh toán</label>
+            <div class="subtotal-row"><span>Tạm tính</span><span id="cart-subtotal">0đ</span></div>
+            <div class="subtotal-row"><span>Giảm giá</span><input id="pos-giamgia" type="number" inputmode="numeric" value="0" oninput="renderCart()"></div>
+            <div class="total-line"><span>Khách trả</span><span id="cart-total">0đ</span></div>
+
+            <label style="margin-top:14px">Hình thức thanh toán</label>
             <div class="toolbar" id="pos-httt-toggle">
               <button type="button" class="httt-btn active" data-val="TienMat" onclick="setHinhThucTT('TienMat')">💵 Tiền mặt</button>
               <button type="button" class="httt-btn secondary" data-val="ChuyenKhoan" onclick="setHinhThucTT('ChuyenKhoan')">📱 Chuyển khoản</button>
@@ -237,7 +264,7 @@
               <div class="total-line" style="font-size:1.05rem" id="pos-thoi-line"><span>Tiền thối lại</span><span id="pos-thoi">0đ</span></div>
             </div>
 
-            <button style="margin-top:14px;width:100%" onclick="checkout()">Thanh toán</button>
+            <button class="pos-pay-btn" style="margin-top:16px" onclick="checkout()">✅ Thanh toán</button>
             <button style="margin-top:8px;width:100%" class="secondary" onclick="clearCart()">Xoá hoá đơn</button>
             <div id="pos-msg"></div>
           </div>
@@ -475,7 +502,7 @@ async function loadAll(){
   try{
     const [tonKho, menu] = await Promise.all([callApi('getTonKho'), callApi('getMenu')]);
     cache = {tonKho, menu};
-    renderMenuGrid(); renderTonKho(); fillSelects(); loadLichSu(); loadKetCa();
+    renderCategories(); renderMenuGrid(); renderTonKho(); fillSelects(); loadLichSu(); loadKetCa();
   }catch(err){ alert('Lỗi tải dữ liệu: '+err.message); }
 }
 function fmtDate(d){ try{ return new Date(d).toLocaleString('vi-VN'); }catch(e){ return d; } }
@@ -558,8 +585,13 @@ function setHinhThucTT(v){
   document.getElementById('pos-tienmat-block').style.display = v==='TienMat' ? 'block' : 'none';
   renderThoiLai();
 }
+function finalTotal_(){
+  const subtotal = cart.reduce((s,c)=>s+c.gia*c.soLuong,0);
+  const giamGia = Number(document.getElementById('pos-giamgia')?.value) || 0;
+  return Math.max(subtotal - giamGia, 0);
+}
 function renderQuickCash(total){
-  const options = [total, 50000, 100000, 200000, 500000].filter((v,i,a)=>a.indexOf(v)===i);
+  const options = [total, 50000, 100000, 200000, 500000].filter((v,i,a)=>a.indexOf(v)===i && v>0);
   document.getElementById('pos-quickcash').innerHTML = options.map(v=>`
     <button type="button" class="quick-cash-btn" onclick="setTienKhach(${v})">${v.toLocaleString()}đ</button>
   `).join('');
@@ -569,24 +601,36 @@ function setTienKhach(v){
   renderThoiLai();
 }
 function renderThoiLai(){
-  const total = cart.reduce((s,c)=>s+c.gia*c.soLuong,0);
+  const total = finalTotal_();
   const khachDua = Number(document.getElementById('pos-tien-khach').value) || 0;
   const thoi = khachDua - total;
   document.getElementById('pos-thoi').innerText = thoi.toLocaleString()+'đ';
   document.getElementById('pos-thoi').style.color = thoi<0 ? 'var(--danger)' : 'var(--text)';
 }
 
+// Icon tròn màu để nhận diện món nhanh (chưa có ảnh thật) — màu suy ra
+// từ tên món để mỗi món luôn có 1 màu cố định, nhất quán giữa các lần tải.
+const ICON_COLORS = ['#0a84ff','#ff9f0a','#30d158','#ff453a','#bf5af2','#64d2ff','#ffd60a'];
+function iconColor_(text){
+  let h=0; for (let i=0;i<text.length;i++) h = text.charCodeAt(i) + ((h<<5)-h);
+  return ICON_COLORS[Math.abs(h) % ICON_COLORS.length];
+}
 function renderMenuGrid(){
   const q = (document.getElementById('pos-search')?.value || '').toLowerCase().trim();
   const items = cache.menu.filter(m=>m.TrangThai!=='TamNgung' &&
     (!activeCategory || m.DanhMuc===activeCategory) &&
     (!q || m.TenMon.toLowerCase().includes(q)));
-  document.getElementById('menu-grid').innerHTML = items.map(m=>`
+  document.getElementById('menu-grid').innerHTML = items.map(m=>{
+    const inCart = cart.find(c=>c.maMon===m.MaMon);
+    return `
     <div class="menu-item" onclick='addToCart(${JSON.stringify({maMon:m.MaMon,tenMon:m.TenMon,gia:Number(m.Gia)})})'>
+      ${inCart ? `<div class="qty-badge">${inCart.soLuong}</div>` : ''}
+      <div class="icon" style="background:${iconColor_(m.TenMon)}">${(m.TenMon||'?').trim().charAt(0).toUpperCase()}</div>
+      ${m.DanhMuc ? `<div class="cat-tag">${m.DanhMuc}</div>` : ''}
       <div class="name">${m.TenMon}</div>
       <div class="price">${Number(m.Gia).toLocaleString()}đ</div>
     </div>
-  `).join('') || '<div class="empty">Không tìm thấy món phù hợp.</div>';
+  `;}).join('') || '<div class="empty">Không tìm thấy món phù hợp.</div>';
 }
 let activeCategory = null;
 function renderCategories(){
@@ -602,28 +646,42 @@ function addToCart(item){
   if(existing) existing.soLuong++;
   else cart.push({...item, soLuong:1});
   renderCart();
+  renderMenuGrid();
 }
 function changeQty(maMon, delta){
   const it = cart.find(c=>c.maMon===maMon);
   it.soLuong += delta;
   if(it.soLuong<=0) cart = cart.filter(c=>c.maMon!==maMon);
   renderCart();
+  renderMenuGrid();
 }
-function clearCart(){ cart=[]; renderCart(); setMsg('pos-msg','',''); }
+function clearCart(){
+  cart=[];
+  document.getElementById('pos-giamgia').value = 0;
+  renderCart();
+  renderMenuGrid();
+  setMsg('pos-msg','','');
+}
 function renderCart(){
   const el = document.getElementById('cart-lines');
   el.innerHTML = cart.length ? cart.map(c=>`
     <div class="cart-line">
-      <span>${c.tenMon}</span>
+      <span class="item-name">
+        <span class="n">${c.tenMon}</span>
+        <span class="p">${Number(c.gia).toLocaleString()}đ x ${c.soLuong}</span>
+      </span>
       <span class="qty-btns">
-        <button onclick="changeQty('${c.maMon}',-1)">-</button>
+        <button onclick="changeQty('${c.maMon}',-1)">−</button>
         <span>${c.soLuong}</span>
         <button onclick="changeQty('${c.maMon}',1)">+</button>
-        <span style="width:80px;text-align:right;font-family:var(--font-mono)">${(c.gia*c.soLuong).toLocaleString()}đ</span>
+        <span style="width:80px;text-align:right;font-family:var(--font-mono);font-weight:600">${(c.gia*c.soLuong).toLocaleString()}đ</span>
       </span>
     </div>
   `).join('') : '<div class="empty">Chưa chọn món nào</div>';
-  const total = cart.reduce((s,c)=>s+c.gia*c.soLuong,0);
+  document.getElementById('cart-time').innerText = new Date().toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'});
+  const subtotal = cart.reduce((s,c)=>s+c.gia*c.soLuong,0);
+  document.getElementById('cart-subtotal').innerText = subtotal.toLocaleString()+'đ';
+  const total = finalTotal_();
   document.getElementById('cart-total').innerText = total.toLocaleString()+'đ';
   renderQuickCash(total);
   renderThoiLai();
@@ -631,7 +689,8 @@ function renderCart(){
 async function checkout(){
   if(!cart.length){ setMsg('pos-msg','Chưa có món nào trong hoá đơn','err'); return; }
   if(!caDangMo){ setMsg('pos-msg','Chưa mở ca, không thể bán hàng','err'); return; }
-  const total = cart.reduce((s,c)=>s+c.gia*c.soLuong,0);
+  const total = finalTotal_();
+  const giamGia = Number(document.getElementById('pos-giamgia').value) || 0;
   let tienKhachDua = '', tienThoi = '';
   if (hinhThucTT === 'TienMat'){
     tienKhachDua = Number(document.getElementById('pos-tien-khach').value) || 0;
@@ -641,7 +700,7 @@ async function checkout(){
   try{
     const res = await callApi('taoHoaDon', {
       items: cart.map(c=>({maMon:c.maMon,tenMon:c.tenMon,soLuong:c.soLuong,gia:c.gia})),
-      ca: caDangMo.ca, hinhThucTT, tienKhachDua, tienThoi, nguoiThucHien: currentUser.username
+      ca: caDangMo.ca, hinhThucTT, giamGia, tienKhachDua, tienThoi, nguoiThucHien: currentUser.username
     });
     let msg = `Thanh toán thành công · Mã HĐ ${res.maHD} · ${Number(res.tongTien).toLocaleString()}đ`;
     if (hinhThucTT==='TienMat') msg += ` · Thối lại ${Number(tienThoi).toLocaleString()}đ`;
@@ -801,27 +860,6 @@ async function loadLichSu(){
     document.getElementById('tbl-ls-nhap').innerHTML = ls.nhap.slice(-30).reverse().map(r=>`<tr><td>${fmtDate(r.ThoiGian)}</td><td>${r.TenNVL}</td><td>${r.SoLuong}</td></tr>`).join('') || `<tr><td colspan="3" class="empty">-</td></tr>`;
     document.getElementById('tbl-ls-xuat').innerHTML = ls.xuat.slice(-30).reverse().map(r=>`<tr><td>${fmtDate(r.ThoiGian)}</td><td>${r.TenNVL}</td><td>${r.SoLuong}</td></tr>`).join('') || `<tr><td colspan="3" class="empty">-</td></tr>`;
     document.getElementById('tbl-ls-huy').innerHTML = ls.huy.slice(-30).reverse().map(r=>`<tr><td>${fmtDate(r.ThoiGian)}</td><td>${r.TenNVL}</td><td>${r.SoLuong}</td></tr>`).join('') || `<tr><td colspan="3" class="empty">-</td></tr>`;
-  }catch(err){}
-}
-
-// ---------- Kết ca ----------
-async function submitKetCa(){
-  const ca = document.getElementById('kc-ca').value;
-  const ngay = document.getElementById('kc-ngay').value;
-  const tienMat = document.getElementById('kc-tienmat').value;
-  const chuyenKhoan = document.getElementById('kc-chuyenkhoan').value;
-  try{
-    const res = await callApi('ketCa', {ca, ngay, tienMat, chuyenKhoan, nguoiThucHien: currentUser.username});
-    setMsg('kc-msg', `Đã kết ca: ${res.soHoaDon} hoá đơn, doanh thu ${Number(res.tongDoanhThu).toLocaleString()}đ`, 'ok');
-    loadKetCa();
-  }catch(err){ setMsg('kc-msg', err.message, 'err'); }
-}
-async function loadKetCa(){
-  try{
-    const list = await callApi('getLichSuKetCa');
-    document.getElementById('tbl-ketca').innerHTML = list.slice(-30).reverse().map(k=>`
-      <tr><td>${fmtDate(k.Ngay)}</td><td>${k.Ca}</td><td>${Number(k.TongDoanhThu).toLocaleString()}đ</td><td>${Number(k.TienMat).toLocaleString()}đ</td><td>${Number(k.ChuyenKhoan).toLocaleString()}đ</td><td>${k.SoHoaDon}</td><td>${k.NguoiKetCa}</td></tr>
-    `).join('') || `<tr><td colspan="7" class="empty">Chưa có ca nào được kết</td></tr>`;
   }catch(err){}
 }
 
