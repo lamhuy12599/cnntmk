@@ -252,7 +252,7 @@
 // Mỗi chi nhánh cần 1 bản HTML riêng: dán URL Web App Apps Script của
 // ĐÚNG chi nhánh đó và tên chi nhánh, rồi mới đưa lên GitHub Pages.
 // ===================================================================
-const API_URL = "https://script.google.com/macros/s/AKfycbxpz80-1rdj10A2_-__A4ZluE3jfwNgftebpT1q3rzOOKQ0bklZSYSjBxi07AsbI_K9SA/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbx1mX6EKPuI1BZleye-xuLt-Izd24qp6AOr0_eYMitMX1XZ0Q2MnH1aMDBTJJ3Mf4yk/exec";
 const BRANCH_NAME = 'Tên chi nhánh (sửa ở đây)';
 
 let currentUser = JSON.parse(sessionStorage.getItem('cn_user') || 'null');
@@ -270,7 +270,7 @@ async function callApi(action, payload){
   if(!API_URL || API_URL.indexOf('DÁN_URL') === 0){
     throw new Error('Webapp chưa được cấu hình API URL. Liên hệ bộ phận kỹ thuật.');
   }
-  const resp = await fetch(API_URL, {method:'POST', body: JSON.stringify({action, payload: payload||{}})});
+  const resp = await fetch(API_URL, {method:'POST', body: JSON.stringify({action, payload: payload||{}, role: currentUser ? currentUser.vaiTro : ''})});
   const json = await resp.json();
   if(!json.ok) throw new Error(json.error || 'Lỗi không xác định');
   return json.data;
@@ -293,16 +293,29 @@ function logout(){
   document.getElementById('app').style.display='none';
   document.getElementById('login-screen').style.display='flex';
 }
+// Nhân viên bán hàng (Staff) chỉ được dùng 3 mục này. Quản lý (Manager)
+// và các vai trò khác được dùng đầy đủ chức năng.
+const STAFF_ALLOWED_SECTIONS = ['banhang','tonkho','ketca'];
+
 function enterApp(){
   document.getElementById('login-screen').style.display='none';
   document.getElementById('app').style.display='block';
   document.getElementById('user-info').innerText = currentUser.hoTen+' · '+currentUser.vaiTro;
   document.getElementById('kc-ngay').valueAsDate = new Date();
+  applyRolePermissions();
   loadAll();
+}
+
+function applyRolePermissions(){
+  if (currentUser.vaiTro !== 'Staff') return; // Manager/khác: full quyền
+  document.querySelectorAll('#nav-links a').forEach(a=>{
+    if (!STAFF_ALLOWED_SECTIONS.includes(a.dataset.sec)) a.style.display = 'none';
+  });
 }
 
 document.getElementById('nav-links').addEventListener('click', e=>{
   const a = e.target.closest('a'); if(!a) return; e.preventDefault();
+  if (currentUser.vaiTro === 'Staff' && !STAFF_ALLOWED_SECTIONS.includes(a.dataset.sec)) return;
   document.querySelectorAll('#nav-links a').forEach(x=>x.classList.remove('active'));
   a.classList.add('active');
   document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
