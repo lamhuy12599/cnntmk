@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Coffee POS — Cửa hàng</title>
+<style>
+  :root{
+    --glass:rgba(255,255,255,.55); --glass-strong:rgba(255,255,255,.72); --glass-border:rgba(255,255,255,.6);
+    --text:#1c1c1e; --muted:#6e6e73; --accent:#0a84ff; --accent2:#ff9f0a;
+    --danger:#ff453a; --ok:#30d158;
+    --font-display:-apple-system,'SF Pro Display',BlinkMacSystemFont,'Segoe UI',sans-serif;
+    --font-body:-apple-system,BlinkMacSystemFont,'SF Pro Text','Segoe UI',Roboto,sans-serif;
+    --font-mono:'SF Mono','SFMono-Regular',Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;color:var(--text);font-family:var(--font-body);
+    background:
+      radial-gradient(circle at 15% 10%, #ffd6a5 0%, transparent 45%),
+      radial-gradient(circle at 85% 15%, #a0c4ff 0%, transparent 50%),
+      radial-gradient(circle at 25% 90%, #bdb2ff 0%, transparent 50%),
+      radial-gradient(circle at 90% 85%, #9bf6ff 0%, transparent 45%),
+      linear-gradient(160deg,#f4f1ea 0%,#e9e4f5 100%);
+    background-attachment:fixed;
+    min-height:100vh;
+  }
+  #login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px}
+  #login-screen h1{font-family:var(--font-display);font-weight:700;font-size:2.1rem;letter-spacing:-.5px;margin:0}
+  .tag{color:var(--muted);font-size:.85rem;letter-spacing:1.5px;text-transform:uppercase}
+  .card{
+    background:var(--glass); border:1px solid var(--glass-border); border-radius:22px; padding:26px;
+    backdrop-filter:blur(28px) saturate(180%); -webkit-backdrop-filter:blur(28px) saturate(180%);
+    box-shadow:0 8px 32px rgba(31,38,52,.12), inset 0 1px 0 rgba(255,255,255,.6);
+  }
+  input,select,textarea,button{font-family:inherit;font-size:1rem}
+  input,select,textarea{
+    background:rgba(255,255,255,.55); border:1px solid rgba(255,255,255,.7); color:var(--text);
+    border-radius:12px; padding:11px 14px; width:100%; backdrop-filter:blur(10px); transition:.15s;
+  }
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(10,132,255,.18)}
+  label{display:block;font-size:.78rem;color:var(--muted);margin:10px 0 5px;font-weight:500}
+  button{
+    cursor:pointer;border:none;border-radius:980px;padding:11px 20px;
+    background:linear-gradient(180deg, var(--accent), #0071e3);color:#fff;font-weight:600;
+    box-shadow:0 2px 10px rgba(10,132,255,.35); transition:.15s;
+  }
+  button:hover{transform:translateY(-1px);box-shadow:0 4px 14px rgba(10,132,255,.45)}
+  button.secondary{background:rgba(255,255,255,.6);color:var(--text);border:1px solid rgba(255,255,255,.8);box-shadow:none;backdrop-filter:blur(10px)}
+  button.danger{background:linear-gradient(180deg,#ff6259,var(--danger));box-shadow:0 2px 10px rgba(255,69,58,.35)}
+  #login-form{width:340px}
+  #app{display:none;min-height:100vh}
+  #sidebar{
+    position:fixed;top:16px;left:16px;bottom:16px;width:204px;border-radius:24px;padding:22px 0;overflow-y:auto;
+    background:var(--glass); border:1px solid var(--glass-border); backdrop-filter:blur(30px) saturate(180%);
+    box-shadow:0 8px 32px rgba(31,38,52,.12), inset 0 1px 0 rgba(255,255,255,.6);
+  }
+  #sidebar h2{font-family:var(--font-display);font-weight:700;font-size:1.1rem;padding:0 22px;margin:0 0 4px;letter-spacing:-.3px}
+  #sidebar .sub{padding:0 22px;color:var(--muted);font-size:.75rem;margin-bottom:18px}
+  #sidebar nav a{display:block;margin:2px 12px;padding:10px 12px;color:var(--muted);text-decoration:none;font-size:.9rem;border-radius:12px;font-weight:500}
+  #sidebar nav a.active{color:#fff;background:linear-gradient(180deg,var(--accent),#0071e3);box-shadow:0 2px 8px rgba(10,132,255,.4)}
+  #sidebar nav a:hover:not(.active){color:var(--text);background:rgba(255,255,255,.5)}
+  #main{margin-left:252px;padding:26px 30px 40px}
+  .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:22px}
+  .topbar h1{font-family:var(--font-display);font-weight:700;font-size:1.6rem;margin:0;letter-spacing:-.4px}
+  table{width:100%;border-collapse:collapse;font-size:.9rem}
+  th,td{text-align:left;padding:10px 12px;border-bottom:1px solid rgba(0,0,0,.06)}
+  th{color:var(--muted);font-weight:600;font-size:.72rem;text-transform:uppercase;letter-spacing:.5px}
+  tbody tr:hover{background:rgba(255,255,255,.35)}
+  .grid{display:grid;gap:16px}
+  .grid.cols-2{grid-template-columns:1fr 1fr}
+  .grid.pos{grid-template-columns:2fr 1fr}
+  .stat{
+    background:var(--glass); border:1px solid var(--glass-border); border-radius:20px; padding:20px;
+    backdrop-filter:blur(24px) saturate(180%); box-shadow:0 8px 24px rgba(31,38,52,.1), inset 0 1px 0 rgba(255,255,255,.6);
+  }
+  .stat .num{font-family:var(--font-mono);font-size:1.8rem;font-weight:700;color:var(--accent)}
+  .stat .lbl{color:var(--muted);font-size:.8rem;margin-top:4px}
+  .row{display:flex;gap:12px;align-items:end;flex-wrap:wrap}
+  .row > div{flex:1;min-width:150px}
+  .msg{padding:11px 15px;border-radius:14px;margin:10px 0;font-size:.88rem;backdrop-filter:blur(10px)}
+  .msg.ok{background:rgba(48,209,88,.15);color:#1c7a37;border:1px solid rgba(48,209,88,.3)}
+  .msg.err{background:rgba(255,69,58,.13);color:#c22e26;border:1px solid rgba(255,69,58,.3)}
+  .section{display:none}
+  .section.active{display:block}
+  .empty{color:var(--muted);text-align:center;padding:26px;font-size:.9rem}
+  /* POS */
+  .menu-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px}
+  .menu-item{
+    background:var(--glass); border:1px solid var(--glass-border); border-radius:18px; padding:16px; cursor:pointer;
+    backdrop-filter:blur(20px) saturate(180%); box-shadow:0 4px 16px rgba(31,38,52,.08), inset 0 1px 0 rgba(255,255,255,.6);
+    transition:.15s;
+  }
+  .menu-item:hover{transform:translateY(-2px);box-shadow:0 8px 22px rgba(10,132,255,.18);border-color:rgba(10,132,255,.4)}
+  .menu-item .name{font-weight:600;font-size:.95rem}
+  .menu-item .price{color:var(--accent);font-family:var(--font-mono);margin-top:6px;font-weight:600}
+  .cart-line{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid rgba(0,0,0,.06);font-size:.9rem}
+  .cart-line .qty-btns{display:flex;gap:6px;align-items:center}
+  .qty-btns button{padding:3px 11px;background:rgba(255,255,255,.7);color:var(--text);box-shadow:none;border:1px solid rgba(0,0,0,.08)}
+  .total-line{display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:1.3rem;font-weight:700;margin-top:14px;padding-top:14px;border-top:1px solid rgba(0,0,0,.1)}
+</style>
+</head>
+<body>
+
+<div id="login-screen">
+  <h1>☕ Coffee POS</h1>
+  <div class="tag" id="branch-name">Cửa hàng</div>
+  <div class="card" id="login-form">
+    <label>Tên đăng nhập</label>
+    <input id="li-user" autocomplete="username">
+    <label>Mật khẩu</label>
+    <input id="li-pass" type="password" autocomplete="current-password">
+    <button style="margin-top:16px;width:100%" onclick="doLogin()">Đăng nhập</button>
+    <div id="login-msg"></div>
+  </div>
+</div>
+
+<div id="app">
+  <div id="sidebar">
+    <h2>☕ Coffee POS</h2>
+    <div class="sub" id="user-info"></div>
+    <nav id="nav-links">
+      <a href="#" data-sec="banhang" class="active">Bán hàng</a>
+      <a href="#" data-sec="tonkho">Tồn kho</a>
+      <a href="#" data-sec="nhapkho">Nhập kho</a>
+      <a href="#" data-sec="xuatkho">Xuất kho</a>
+      <a href="#" data-sec="huyhang">Huỷ hàng</a>
+      <a href="#" data-sec="lichsu">Lịch sử kho</a>
+      <a href="#" data-sec="ketca">Kết ca</a>
+      <a href="#" data-sec="baocao">Báo cáo</a>
+    </nav>
+    <div style="padding:20px"><button class="secondary" style="width:100%" onclick="logout()">Đăng xuất</button></div>
+  </div>
+
+  <div id="main">
+
+    <div class="section active" id="sec-banhang">
+      <div class="topbar"><h1>Bán hàng</h1>
+        <select id="ca-hientai" style="width:160px">
+          <option value="Sáng">Ca Sáng</option>
+          <option value="Chiều">Ca Chiều</option>
+          <option value="Tối">Ca Tối</option>
+        </select>
+      </div>
+      <div class="grid pos">
+        <div class="menu-grid" id="menu-grid"></div>
+        <div class="card" style="height:fit-content;position:sticky;top:20px">
+          <h3 style="margin-top:0">Hoá đơn</h3>
+          <div id="cart-lines"><div class="empty">Chưa chọn món nào</div></div>
+          <div class="total-line"><span>Tổng cộng</span><span id="cart-total">0đ</span></div>
+          <label>Hình thức thanh toán</label>
+          <select id="pos-httt"><option value="TienMat">Tiền mặt</option><option value="ChuyenKhoan">Chuyển khoản</option></select>
+          <button style="margin-top:14px;width:100%" onclick="checkout()">Thanh toán</button>
+          <button style="margin-top:8px;width:100%" class="secondary" onclick="clearCart()">Xoá hoá đơn</button>
+          <div id="pos-msg"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section" id="sec-tonkho">
+      <div class="topbar"><h1>Tồn kho chi nhánh</h1></div>
+      <div class="card"><table><thead><tr><th>Mã</th><th>Tên NVL</th><th>Đơn vị</th><th>Tồn</th><th>Định mức tối thiểu</th></tr></thead><tbody id="tbl-tonkho"></tbody></table></div>
+    </div>
+
+    <div class="section" id="sec-nhapkho">
+      <div class="topbar"><h1>Nhập kho (mua thêm tại chỗ)</h1></div>
+      <div class="card">
+        <div class="row">
+          <div><label>Nguyên vật liệu</label><select id="nk-nvl"></select></div>
+          <div><label>Số lượng</label><input id="nk-sl" type="number"></div>
+        </div>
+        <label>Ghi chú</label><input id="nk-ghichu">
+        <button style="margin-top:14px" onclick="submitNhapKho()">Nhập kho</button>
+        <div id="nk-msg"></div>
+      </div>
+    </div>
+
+    <div class="section" id="sec-xuatkho">
+      <div class="topbar"><h1>Xuất kho thủ công</h1></div>
+      <div class="card">
+        <div class="row">
+          <div><label>Nguyên vật liệu</label><select id="xk-nvl"></select></div>
+          <div><label>Số lượng</label><input id="xk-sl" type="number"></div>
+          <div><label>Lý do</label><input id="xk-lydo" placeholder="Chuyển kho, dùng nội bộ..."></div>
+        </div>
+        <button style="margin-top:14px" onclick="submitXuatKho()">Xuất kho</button>
+        <div id="xk-msg"></div>
+      </div>
+    </div>
+
+    <div class="section" id="sec-huyhang">
+      <div class="topbar"><h1>Huỷ hàng</h1></div>
+      <div class="card">
+        <div class="row">
+          <div><label>Nguyên vật liệu</label><select id="hh-nvl"></select></div>
+          <div><label>Số lượng huỷ</label><input id="hh-sl" type="number"></div>
+          <div><label>Lý do</label><input id="hh-lydo" placeholder="Hết hạn, hư hỏng..."></div>
+        </div>
+        <button style="margin-top:14px" class="danger" onclick="submitHuyHang()">Huỷ hàng</button>
+        <div id="hh-msg"></div>
+      </div>
+    </div>
+
+    <div class="section" id="sec-lichsu">
+      <div class="topbar"><h1>Lịch sử kho</h1></div>
+      <div class="grid" style="grid-template-columns:1fr 1fr 1fr">
+        <div class="card"><h3>Nhập kho</h3><table><thead><tr><th>Thời gian</th><th>NVL</th><th>SL</th></tr></thead><tbody id="tbl-ls-nhap"></tbody></table></div>
+        <div class="card"><h3>Xuất kho</h3><table><thead><tr><th>Thời gian</th><th>NVL</th><th>SL</th></tr></thead><tbody id="tbl-ls-xuat"></tbody></table></div>
+        <div class="card"><h3>Huỷ hàng</h3><table><thead><tr><th>Thời gian</th><th>NVL</th><th>SL</th></tr></thead><tbody id="tbl-ls-huy"></tbody></table></div>
+      </div>
+    </div>
+
+    <div class="section" id="sec-ketca">
+      <div class="topbar"><h1>Kết ca</h1></div>
+      <div class="card">
+        <div class="row">
+          <div><label>Ca</label><select id="kc-ca"><option>Sáng</option><option>Chiều</option><option>Tối</option></select></div>
+          <div><label>Ngày</label><input id="kc-ngay" type="date"></div>
+        </div>
+        <div class="row">
+          <div><label>Tiền mặt thực tế trong quầy</label><input id="kc-tienmat" type="number"></div>
+          <div><label>Chuyển khoản (đối soát)</label><input id="kc-chuyenkhoan" type="number"></div>
+        </div>
+        <button style="margin-top:14px" onclick="submitKetCa()">Kết ca</button>
+        <div id="kc-msg"></div>
+      </div>
+      <div class="card" style="margin-top:16px">
+        <h3 style="margin-top:0">Lịch sử kết ca</h3>
+        <table><thead><tr><th>Ngày</th><th>Ca</th><th>Doanh thu</th><th>Tiền mặt</th><th>Chuyển khoản</th><th>Số HĐ</th><th>Người kết</th></tr></thead><tbody id="tbl-ketca"></tbody></table>
+      </div>
+    </div>
+
+    <div class="section" id="sec-baocao">
+      <div class="topbar"><h1>Báo cáo chi nhánh</h1></div>
+      <div class="card">
+        <div class="row">
+          <div><label>Từ ngày</label><input id="bc-tu" type="date"></div>
+          <div><label>Đến ngày</label><input id="bc-den" type="date"></div>
+          <div><button onclick="submitBaoCao()">Xem báo cáo</button></div>
+        </div>
+        <div class="grid cols-2" id="bc-stats" style="margin-top:14px"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ===================================================================
+// CẤU HÌNH CỐ ĐỊNH — chỉ người viết code (admin kỹ thuật) mới sửa được
+// tại đây, nhân viên dùng webapp không thể thay đổi giá trị này.
+// Mỗi chi nhánh cần 1 bản HTML riêng: dán URL Web App Apps Script của
+// ĐÚNG chi nhánh đó và tên chi nhánh, rồi mới đưa lên GitHub Pages.
+// ===================================================================
+const API_URL = "https://script.google.com/macros/s/AKfycbxpz80-1rdj10A2_-__A4ZluE3jfwNgftebpT1q3rzOOKQ0bklZSYSjBxi07AsbI_K9SA/exec";
+const BRANCH_NAME = 'Tên chi nhánh (sửa ở đây)';
+
+let currentUser = JSON.parse(sessionStorage.getItem('cn_user') || 'null');
+let cache = {tonKho:[], menu:[]};
+let cart = []; // {maMon,tenMon,gia,soLuong}
+
+document.getElementById('branch-name').innerText = BRANCH_NAME;
+
+function setMsg(id, text, kind){
+  const el = document.getElementById(id);
+  el.innerHTML = text ? `<div class="msg ${kind}">${text}</div>` : '';
+}
+
+async function callApi(action, payload){
+  if(!API_URL || API_URL.indexOf('DÁN_URL') === 0){
+    throw new Error('Webapp chưa được cấu hình API URL. Liên hệ bộ phận kỹ thuật.');
+  }
+  const resp = await fetch(API_URL, {method:'POST', body: JSON.stringify({action, payload: payload||{}})});
+  const json = await resp.json();
+  if(!json.ok) throw new Error(json.error || 'Lỗi không xác định');
+  return json.data;
+}
+
+// ---------- Auth ----------
+async function doLogin(){
+  const username = document.getElementById('li-user').value.trim();
+  const password = document.getElementById('li-pass').value;
+  setMsg('login-msg','','');
+  try{
+    const user = await callApi('login', {username, password});
+    currentUser = user;
+    sessionStorage.setItem('cn_user', JSON.stringify(user));
+    enterApp();
+  }catch(err){ setMsg('login-msg', err.message, 'err'); }
+}
+function logout(){
+  sessionStorage.removeItem('cn_user'); currentUser=null;
+  document.getElementById('app').style.display='none';
+  document.getElementById('login-screen').style.display='flex';
+}
+function enterApp(){
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('app').style.display='block';
+  document.getElementById('user-info').innerText = currentUser.hoTen+' · '+currentUser.vaiTro;
+  document.getElementById('kc-ngay').valueAsDate = new Date();
+  loadAll();
+}
+
+document.getElementById('nav-links').addEventListener('click', e=>{
+  const a = e.target.closest('a'); if(!a) return; e.preventDefault();
+  document.querySelectorAll('#nav-links a').forEach(x=>x.classList.remove('active'));
+  a.classList.add('active');
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.getElementById('sec-'+a.dataset.sec).classList.add('active');
+});
+
+async function loadAll(){
+  try{
+    const [tonKho, menu] = await Promise.all([callApi('getTonKho'), callApi('getMenu')]);
+    cache = {tonKho, menu};
+    renderMenuGrid(); renderTonKho(); fillSelects(); loadLichSu(); loadKetCa();
+  }catch(err){ alert('Lỗi tải dữ liệu: '+err.message); }
+}
+function fmtDate(d){ try{ return new Date(d).toLocaleString('vi-VN'); }catch(e){ return d; } }
+
+// ---------- POS ----------
+function renderMenuGrid(){
+  const items = cache.menu.filter(m=>m.TrangThai!=='TamNgung');
+  document.getElementById('menu-grid').innerHTML = items.map(m=>`
+    <div class="menu-item" onclick='addToCart(${JSON.stringify({maMon:m.MaMon,tenMon:m.TenMon,gia:Number(m.Gia)})})'>
+      <div class="name">${m.TenMon}</div>
+      <div class="price">${Number(m.Gia).toLocaleString()}đ</div>
+    </div>
+  `).join('') || '<div class="empty">Chưa có menu. Vui lòng chờ HQ cập nhật.</div>';
+}
+function addToCart(item){
+  const existing = cart.find(c=>c.maMon===item.maMon);
+  if(existing) existing.soLuong++;
+  else cart.push({...item, soLuong:1});
+  renderCart();
+}
+function changeQty(maMon, delta){
+  const it = cart.find(c=>c.maMon===maMon);
+  it.soLuong += delta;
+  if(it.soLuong<=0) cart = cart.filter(c=>c.maMon!==maMon);
+  renderCart();
+}
+function clearCart(){ cart=[]; renderCart(); setMsg('pos-msg','',''); }
+function renderCart(){
+  const el = document.getElementById('cart-lines');
+  el.innerHTML = cart.length ? cart.map(c=>`
+    <div class="cart-line">
+      <span>${c.tenMon}</span>
+      <span class="qty-btns">
+        <button onclick="changeQty('${c.maMon}',-1)">-</button>
+        <span>${c.soLuong}</span>
+        <button onclick="changeQty('${c.maMon}',1)">+</button>
+        <span style="width:80px;text-align:right;font-family:var(--font-mono)">${(c.gia*c.soLuong).toLocaleString()}đ</span>
+      </span>
+    </div>
+  `).join('') : '<div class="empty">Chưa chọn món nào</div>';
+  const total = cart.reduce((s,c)=>s+c.gia*c.soLuong,0);
+  document.getElementById('cart-total').innerText = total.toLocaleString()+'đ';
+}
+async function checkout(){
+  if(!cart.length){ setMsg('pos-msg','Chưa có món nào trong hoá đơn','err'); return; }
+  const ca = document.getElementById('ca-hientai').value;
+  const hinhThucTT = document.getElementById('pos-httt').value;
+  try{
+    const res = await callApi('taoHoaDon', {
+      items: cart.map(c=>({maMon:c.maMon,tenMon:c.tenMon,soLuong:c.soLuong,gia:c.gia})),
+      ca, hinhThucTT, nguoiThucHien: currentUser.username
+    });
+    setMsg('pos-msg', `Thanh toán thành công · Mã HĐ ${res.maHD} · ${Number(res.tongTien).toLocaleString()}đ`, 'ok');
+    clearCart();
+    await loadAll();
+  }catch(err){ setMsg('pos-msg', err.message, 'err'); }
+}
+
+// ---------- Tồn kho ----------
+function renderTonKho(){
+  document.getElementById('tbl-tonkho').innerHTML = cache.tonKho.map(t=>`
+    <tr><td>${t.MaNVL}</td><td>${t.TenNVL}</td><td>${t.DonVi}</td><td>${t.SoLuong}</td><td>${t.DinhMucToiThieu||0}</td></tr>
+  `).join('') || `<tr><td colspan="5" class="empty">Kho trống - chờ nhận hàng từ kho chính</td></tr>`;
+}
+function fillSelects(){
+  const opts = cache.tonKho.map(n=>`<option value="${n.MaNVL}" data-ten="${n.TenNVL}" data-donvi="${n.DonVi}">${n.TenNVL}</option>`).join('');
+  ['nk-nvl','xk-nvl','hh-nvl'].forEach(id=>document.getElementById(id).innerHTML = opts);
+}
+function selMeta(id){
+  const sel = document.getElementById(id);
+  const opt = sel.options[sel.selectedIndex];
+  return {maNVL: sel.value, tenNVL: opt?.dataset.ten, donVi: opt?.dataset.donvi};
+}
+async function submitNhapKho(){
+  const m = selMeta('nk-nvl');
+  const soLuong = document.getElementById('nk-sl').value;
+  try{
+    await callApi('nhapKho', {...m, soLuong, nguonNhap:'MuaTaiCho', ghiChu:document.getElementById('nk-ghichu').value, nguoiThucHien: currentUser.username});
+    setMsg('nk-msg','Nhập kho thành công','ok'); await loadAll();
+  }catch(err){ setMsg('nk-msg', err.message, 'err'); }
+}
+async function submitXuatKho(){
+  const m = selMeta('xk-nvl');
+  const soLuong = document.getElementById('xk-sl').value;
+  try{
+    await callApi('xuatKho', {...m, soLuong, lyDo:document.getElementById('xk-lydo').value, nguoiThucHien: currentUser.username});
+    setMsg('xk-msg','Xuất kho thành công','ok'); await loadAll();
+  }catch(err){ setMsg('xk-msg', err.message, 'err'); }
+}
+async function submitHuyHang(){
+  const m = selMeta('hh-nvl');
+  const soLuong = document.getElementById('hh-sl').value;
+  try{
+    await callApi('huyHang', {...m, soLuong, lyDo:document.getElementById('hh-lydo').value, nguoiThucHien: currentUser.username});
+    setMsg('hh-msg','Đã huỷ hàng','ok'); await loadAll();
+  }catch(err){ setMsg('hh-msg', err.message, 'err'); }
+}
+async function loadLichSu(){
+  try{
+    const ls = await callApi('getLichSuKho');
+    document.getElementById('tbl-ls-nhap').innerHTML = ls.nhap.slice(-30).reverse().map(r=>`<tr><td>${fmtDate(r.ThoiGian)}</td><td>${r.TenNVL}</td><td>${r.SoLuong}</td></tr>`).join('') || `<tr><td colspan="3" class="empty">-</td></tr>`;
+    document.getElementById('tbl-ls-xuat').innerHTML = ls.xuat.slice(-30).reverse().map(r=>`<tr><td>${fmtDate(r.ThoiGian)}</td><td>${r.TenNVL}</td><td>${r.SoLuong}</td></tr>`).join('') || `<tr><td colspan="3" class="empty">-</td></tr>`;
+    document.getElementById('tbl-ls-huy').innerHTML = ls.huy.slice(-30).reverse().map(r=>`<tr><td>${fmtDate(r.ThoiGian)}</td><td>${r.TenNVL}</td><td>${r.SoLuong}</td></tr>`).join('') || `<tr><td colspan="3" class="empty">-</td></tr>`;
+  }catch(err){}
+}
+
+// ---------- Kết ca ----------
+async function submitKetCa(){
+  const ca = document.getElementById('kc-ca').value;
+  const ngay = document.getElementById('kc-ngay').value;
+  const tienMat = document.getElementById('kc-tienmat').value;
+  const chuyenKhoan = document.getElementById('kc-chuyenkhoan').value;
+  try{
+    const res = await callApi('ketCa', {ca, ngay, tienMat, chuyenKhoan, nguoiThucHien: currentUser.username});
+    setMsg('kc-msg', `Đã kết ca: ${res.soHoaDon} hoá đơn, doanh thu ${Number(res.tongDoanhThu).toLocaleString()}đ`, 'ok');
+    loadKetCa();
+  }catch(err){ setMsg('kc-msg', err.message, 'err'); }
+}
+async function loadKetCa(){
+  try{
+    const list = await callApi('getLichSuKetCa');
+    document.getElementById('tbl-ketca').innerHTML = list.slice(-30).reverse().map(k=>`
+      <tr><td>${fmtDate(k.Ngay)}</td><td>${k.Ca}</td><td>${Number(k.TongDoanhThu).toLocaleString()}đ</td><td>${Number(k.TienMat).toLocaleString()}đ</td><td>${Number(k.ChuyenKhoan).toLocaleString()}đ</td><td>${k.SoHoaDon}</td><td>${k.NguoiKetCa}</td></tr>
+    `).join('') || `<tr><td colspan="7" class="empty">Chưa có ca nào được kết</td></tr>`;
+  }catch(err){}
+}
+
+// ---------- Báo cáo ----------
+async function submitBaoCao(){
+  const tuNgay = document.getElementById('bc-tu').value;
+  const denNgay = document.getElementById('bc-den').value;
+  try{
+    const res = await callApi('getBaoCao', {tuNgay, denNgay});
+    document.getElementById('bc-stats').innerHTML = `
+      <div class="stat"><div class="num">${res.soHoaDon}</div><div class="lbl">Hoá đơn</div></div>
+      <div class="stat"><div class="num">${Number(res.tongDoanhThu).toLocaleString()}đ</div><div class="lbl">Doanh thu</div></div>
+    `;
+  }catch(err){ alert(err.message); }
+}
+
+// ---------- Init ----------
+(function init(){
+  if(currentUser){ enterApp(); }
+})();
+</script>
+</body>
+</html>
