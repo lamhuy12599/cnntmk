@@ -291,14 +291,30 @@
     </div>
 
     <div class="section" id="sec-xuatkho">
-      <div class="topbar"><h1>Xuất kho thủ công</h1></div>
+      <div class="topbar"><h1>Xuất kho</h1></div>
       <div class="card">
-        <div class="row">
+        <label>Mục đích xuất</label>
+        <div class="toolbar" id="xk-loai-toggle">
+          <button type="button" class="cat-btn active" data-val="ThuCong" onclick="setLoaiXuat('ThuCong')">📤 Dùng nội bộ / khác</button>
+          <button type="button" class="cat-btn" data-val="ChuyenCN" onclick="setLoaiXuat('ChuyenCN')">🏪 Chuyển cho chi nhánh khác</button>
+        </div>
+
+        <div class="row" style="margin-top:10px">
           <div><label>Nguyên vật liệu</label><select id="xk-nvl"></select></div>
           <div><label>Số lượng</label><input id="xk-sl" type="number"></div>
-          <div><label>Lý do</label><input id="xk-lydo" placeholder="Chuyển kho, dùng nội bộ..."></div>
         </div>
-        <button style="margin-top:14px" onclick="submitXuatKho()">Xuất kho</button>
+
+        <div id="xk-thucong-block">
+          <label>Lý do</label><input id="xk-lydo" placeholder="Chuyển kho, dùng nội bộ, hư hỏng nhẹ...">
+        </div>
+
+        <div id="xk-chuyencn-block" style="display:none">
+          <label>Chi nhánh nhận hàng</label>
+          <select id="xk-cn-dich"><option value="">Đang tải danh sách chi nhánh...</option></select>
+          <label>Ghi chú</label><input id="xk-cn-ghichu" placeholder="VD: hỗ trợ cuối tuần đông khách">
+        </div>
+
+        <button style="margin-top:14px" onclick="submitXuatKho()">Xác nhận</button>
         <div id="xk-msg"></div>
       </div>
     </div>
@@ -385,6 +401,11 @@
           <div><button onclick="submitBaoCao()">Xem báo cáo</button></div>
         </div>
         <div class="grid cols-2" id="bc-stats" style="margin-top:14px"></div>
+      </div>
+      <div class="card" style="margin-top:16px">
+        <h3 style="margin-top:0">Nguyên liệu đã trừ tồn (do bán hàng)</h3>
+        <p class="pill">Dùng chung khoảng ngày ở trên. Số liệu này được ghi lại đúng tại thời điểm bán, nên không đổi kể cả khi công thức món sau này bị sửa.</p>
+        <table><thead><tr><th>Nguyên vật liệu</th><th>Tổng đã tiêu hao</th></tr></thead><tbody id="tbl-bc-tieuhao"></tbody></table>
       </div>
     </div>
 
@@ -505,6 +526,7 @@ document.getElementById('nav-links').addEventListener('click', e=>{
   document.getElementById('sec-'+a.dataset.sec).classList.add('active');
   if (a.dataset.sec === 'ketca') loadKetCaPanel();
   if (a.dataset.sec === 'ketdoanhthu') loadKetDoanhThu();
+  if (a.dataset.sec === 'xuatkho') loadDanhSachChiNhanhXuat();
 });
 
 async function loadAll(){
@@ -847,13 +869,46 @@ async function submitNhapKho(){
     setMsg('nk-msg','Nhập kho thành công','ok'); await loadAll();
   }catch(err){ setMsg('nk-msg', err.message, 'err'); }
 }
+let loaiXuat = 'ThuCong';
+function setLoaiXuat(v){
+  loaiXuat = v;
+  document.querySelectorAll('#xk-loai-toggle .cat-btn').forEach(b=>b.classList.toggle('active', b.dataset.val===v));
+  document.getElementById('xk-thucong-block').style.display = v==='ThuCong' ? 'block' : 'none';
+  document.getElementById('xk-chuyencn-block').style.display = v==='ChuyenCN' ? 'block' : 'none';
+}
+async function loadDanhSachChiNhanhXuat(){
+  const sel = document.getElementById('xk-cn-dich');
+  sel.innerHTML = `<option value="">Đang tải danh sách chi nhánh...</option>`;
+  try{
+    const list = await callApi('getDanhSachChiNhanh');
+    sel.innerHTML = list.length
+      ? list.map(c=>`<option value="${c.MaCN}">${c.TenCN}</option>`).join('')
+      : `<option value="">Không có chi nhánh nào khác</option>`;
+  }catch(err){
+    sel.innerHTML = `<option value="">Lỗi tải danh sách: ${err.message}</option>`;
+  }
+}
 async function submitXuatKho(){
   const m = selMeta('xk-nvl');
   const soLuong = document.getElementById('xk-sl').value;
-  try{
-    await callApi('xuatKho', {...m, soLuong, lyDo:document.getElementById('xk-lydo').value, nguoiThucHien: currentUser.username});
-    setMsg('xk-msg','Xuất kho thành công','ok'); await loadAll();
-  }catch(err){ setMsg('xk-msg', err.message, 'err'); }
+  if (!soLuong || Number(soLuong)<=0){ setMsg('xk-msg','Vui lòng nhập số lượng','err'); return; }
+  if (loaiXuat === 'ThuCong'){
+    try{
+      await callApi('xuatKho', {...m, soLuong, lyDo:document.getElementById('xk-lydo').value, nguoiThucHien: currentUser.username});
+      setMsg('xk-msg','Xuất kho thành công','ok'); await loadAll();
+    }catch(err){ setMsg('xk-msg', err.message, 'err'); }
+  } else {
+    const maCNDich = document.getElementById('xk-cn-dich').value;
+    if (!maCNDich){ setMsg('xk-msg','Chọn chi nhánh nhận hàng','err'); return; }
+    try{
+      const res = await callApi('chuyenKhoChoChiNhanhKhac', {
+        maCNDich, items:[{...m, soLuong}],
+        ghiChu: document.getElementById('xk-cn-ghichu').value, nguoiThucHien: currentUser.username
+      });
+      setMsg('xk-msg', `Kết quả: ${res.trangThai}`, res.trangThai==='ThanhCong'?'ok':'err');
+      await loadAll();
+    }catch(err){ setMsg('xk-msg', err.message, 'err'); }
+  }
 }
 async function submitHuyHang(){
   const m = selMeta('hh-nvl');
@@ -883,6 +938,12 @@ async function submitBaoCao(){
       <div class="stat"><div class="num">${Number(res.tongDoanhThu).toLocaleString()}đ</div><div class="lbl">Doanh thu</div></div>
     `;
   }catch(err){ alert(err.message); }
+  try{
+    const th = await callApi('getBaoCaoTieuHao', {tuNgay, denNgay});
+    document.getElementById('tbl-bc-tieuhao').innerHTML = th.chiTiet.map(r=>`
+      <tr><td>${r.tenNVL}</td><td>${r.tongTieuHao}</td></tr>
+    `).join('') || `<tr><td colspan="2" class="empty">Không có dữ liệu tiêu hao trong khoảng ngày này</td></tr>`;
+  }catch(err){}
 }
 
 // ---------- Init ----------
