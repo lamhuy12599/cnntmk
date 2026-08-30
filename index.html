@@ -392,6 +392,15 @@
 </div>
 
 <script>
+// Lấy chuỗi ngày "yyyy-MM-dd" theo giờ ĐỊA PHƯƠNG của trình duyệt —
+// KHÔNG dùng toISOString()/valueAsDate vì 2 cách đó quy đổi qua giờ
+// UTC, dễ bị lệch sang ngày hôm trước/sau vào những giờ gần nửa đêm.
+function localDateStr(d){
+  const dt = d ? new Date(d) : new Date();
+  const y = dt.getFullYear(), m = String(dt.getMonth()+1).padStart(2,'0'), day = String(dt.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+
 // ===================================================================
 // CẤU HÌNH CỐ ĐỊNH — chỉ người viết code (admin kỹ thuật) mới sửa được
 // tại đây, nhân viên dùng webapp không thể thay đổi giá trị này.
@@ -457,7 +466,7 @@ function enterApp(){
   document.getElementById('login-screen').style.display='none';
   document.getElementById('app').style.display='block';
   document.getElementById('user-info').innerText = currentUser.hoTen+' · '+currentUser.vaiTro;
-  document.getElementById('moca-ngay').valueAsDate = new Date();
+  document.getElementById('moca-ngay').value = localDateStr();
   applyRolePermissions();
   renderMenhGiaTable('tbl-moca-menhgia', {});
   loadAll();
@@ -725,7 +734,7 @@ async function loadKetCaPanel(){
   document.getElementById('ketca-chua-mo').style.display='none';
   document.getElementById('ketca-panel').style.display='block';
   document.getElementById('kc-ca').value = caDangMo.ca;
-  document.getElementById('kc-ngay').value = caDangMo.ngay ? new Date(caDangMo.ngay).toISOString().slice(0,10) : new Date().toISOString().slice(0,10);
+  document.getElementById('kc-ngay').value = localDateStr(); // ca đang mở luôn thuộc "hôm nay" theo logic mới
   document.getElementById('kc-tiendauca').innerText = Number(caDangMo.tienDauCa).toLocaleString()+'đ';
   renderMenhGiaTable('tbl-ketca-menhgia', {});
   document.getElementById('ketca-chenhlech-box').style.display = 'none';
@@ -798,7 +807,7 @@ async function submitRutTien(){
   if (soTienRut<=0){ setMsg('kdt-msg','Không có tiền để rút (kiểm tra lại số để lại)','err'); return; }
   try{
     await callApi('rutTien', {
-      ngay: new Date().toISOString().slice(0,10), soTienRut, soTienDeLai: deLai,
+      ngay: localDateStr(), soTienRut, soTienDeLai: deLai,
       nguoiThucHien: currentUser.username, ghiChu: document.getElementById('kdt-ghichu').value
     });
     setMsg('kdt-msg', `Đã rút ${soTienRut.toLocaleString()}đ, để lại ${deLai.toLocaleString()}đ trong két`, 'ok');
